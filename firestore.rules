@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isEmailOwner(email) {
+      return isSignedIn() && request.auth.token.email == email;
+    }
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Deleted users (Recycle Bin)
+    match /deleted_users/{userId} {
+      allow read, write: if isAdmin();
+    }
+
+    // KRAs - Allow access based on UID or Email
+    match /kras/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
+    }
+
+    // Leaves
+    match /leaves/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
+    }
+
+    // Expenses
+    match /expenses/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
+    }
+
+    // Routine Tasks
+    match /routineTasks/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
+    }
+
+    // Habits
+    match /habits/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
+    }
+
+    // Attendance
+    match /attendances/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
+    }
+
+    // Recruitment
+    match /recruits/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Global Collections
+    match /branches/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /holidays/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    
+    // Activities Feed
+    match /activities/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+    
+    // Roles management
+    match /roles_admin/{userId} {
+      allow read: if isSignedIn();
+      // Allow the initial master admin to set their own role
+      allow write: if isOwner(userId) && request.auth.token.email == 'connect@luvfitnessworld.com';
+    }
+  }
+}
